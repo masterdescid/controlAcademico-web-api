@@ -1,0 +1,42 @@
+name: CI Pipeline for ASP.NET Core Web API
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Verificar el código del repositorio
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # 2. Configurar .NET Core SDK
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x' 
+
+      # 3. Restaurar dependencias
+      - name: Restore dependencies
+        run: dotnet restore
+
+      # 4. Ejecutar pruebas automatizadas
+      - name: Run Tests
+        run: dotnet test --no-build --verbosity normal
+
+      # 5. Escaneo de vulnerabilidades
+      - name: CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          languages: 'csharp'
+
+      # 6. Construir la aplicación
+      - name: Build Application
+        run: dotnet build --configuration Release --no-restore
