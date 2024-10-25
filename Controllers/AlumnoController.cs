@@ -16,7 +16,7 @@ namespace controlAcademico_web_api.Controllers
             _context = context;
         }
 
-        // GET: api/<AgenciaController>
+        // GET: api/<AgenciaControllers>
         [HttpGet]
         [AuthorizeRole("Alumno","Administrador")]
         public async Task<ActionResult<List<usuario>>> Get()
@@ -32,7 +32,7 @@ namespace controlAcademico_web_api.Controllers
                 }
                 else
                 {
-                    return BadRequest("Se obtuvo un NULL como respuesta en la búsqueda.");
+                    return BadRequest("Se obtuvo un NULL como respuesta en la búsqueda.........");
                 }
 
             }
