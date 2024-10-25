@@ -1,0 +1,6 @@
+@controlAcademico_web_api_HostAddress = http://localhost:5247
+
+GET {{controlAcademico_web_api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
