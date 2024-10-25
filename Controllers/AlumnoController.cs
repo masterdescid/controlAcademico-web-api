@@ -32,7 +32,7 @@ namespace controlAcademico_web_api.Controllers
                 }
                 else
                 {
-                    return BadRequest("Se obtuvo un NULL como respuesta en la búsqueda.........");
+                    return BadRequest("Se obtuvo un NULL como respuesta en la búsqueda.");
                 }
 
             }
