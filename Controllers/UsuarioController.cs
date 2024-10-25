@@ -149,36 +149,33 @@ namespace controlAcademico_web_api.Controllers
         {
             try
             {
-                // Busca al usuario por correo
                 var user = await _context.usuario.FirstOrDefaultAsync(u => u.correo == EncryptionHelper.Encrypt(loginRequest.correo));
                 if (user == null)
                 {
-                    return BadRequest("Correo o contraseña incorrectos.");
+                    return Unauthorized("El correo no está registrado."); 
                 }
 
-                // Verifica si la contraseña coincide con el hash almacenado
                 bool isPasswordValid = BCrypt.Net.BCrypt.Verify(loginRequest.clave, user.clave);
                 if (!isPasswordValid)
                 {
-                    return BadRequest("Correo o contraseña incorrectos.");
+                    return Unauthorized("La contraseña es incorrecta."); 
                 }
 
-                // Busca el rol del usuario
                 var rol = await _context.rol.FirstOrDefaultAsync(r => r.codigoRol == user.codigoRol);
                 if (rol == null)
                 {
-                    return BadRequest("Rol no encontrado.");
+                    return BadRequest("Rol no encontrado."); 
                 }
 
-                // Generamos el token JWT
                 var token = GenerateJwtToken(user, rol);
                 return Ok(new { token });
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}"); // Mensaje de error
             }
         }
+
 
         private string GenerateJwtToken(usuario user, rol rol)
         {

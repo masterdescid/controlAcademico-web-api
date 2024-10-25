@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -27,8 +27,6 @@
 
   <ItemGroup>
     <None Include=".github\workflows\ci-cd.yml" />
-    <None Include=".github\workflows\master_controlacademico-web-api.yml" />
-    <None Include=".github\workflows\master_controlweb.yml" />
   </ItemGroup>
 
 </Project>

@@ -27,16 +27,30 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
-      # 4. Ejecutar pruebas automatizadas
+      # 4. Verificar dependencias desactualizadas
+      - name: Check for outdated dependencies
+        run: dotnet list package --outdated
+
+      # 5. Ejecutar pruebas automatizadas
       - name: Run Tests
         run: dotnet test --no-build --verbosity normal
 
-      # 5. Escaneo de vulnerabilidades
+      # 6. Escaneo de vulnerabilidades con CodeQL
       - name: CodeQL Analysis
         uses: github/codeql-action/analyze@v2
         with:
           languages: 'csharp'
 
-      # 6. Construir la aplicación
+      # 7. Escaneo de vulnerabilidades con OWASP Dependency-Check
+      - name: Install OWASP Dependency-Check
+        run: |
+          wget https://downloads.sourceforge.net/project/dependency-check/1.0.0.0/dependency-check-1.0.0.0-release.zip
+          unzip dependency-check-1.0.0.0-release.zip -d dependency-check
+          chmod +x dependency-check/bin/dependency-check.sh
+
+      - name: Run Dependency-Check
+        run: dependency-check/bin/dependency-check.sh --project "controlAcademico-web-api" --out . --scan .
+
+      # 8. Construir la aplicación
       - name: Build Application
         run: dotnet build --configuration Release --no-restore
