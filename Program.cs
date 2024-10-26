@@ -1,8 +1,11 @@
 using controlAcademico_web_api.Models;
+using Microsoft.AspNetCore.Builder.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +18,11 @@ builder.Services.AddControllers().AddJsonOptions(x =>
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("sqlCons"))
 );
+
+// Configuración para SmtpOptions
+builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("SmtpOptions"));
+
+builder.Services.AddMemoryCache();
 
 // Agregar Swagger (para documentación de la API)
 builder.Services.AddSwaggerGen();

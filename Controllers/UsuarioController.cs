@@ -9,6 +9,12 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Security.Cryptography;
+using Microsoft.Extensions.Caching.Memory;
+using System.Net.Mail;
+using System.Net;
+using Microsoft.Extensions.Options;
+
+
 
 namespace controlAcademico_web_api.Controllers
 {
@@ -18,11 +24,85 @@ namespace controlAcademico_web_api.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly IMemoryCache _cache;
+        private readonly SmtpOptions _smtpOptions;
 
-        public UsuarioController(ApplicationDbContext context, IConfiguration configuration)
+        public UsuarioController(ApplicationDbContext context, IConfiguration configuration, IMemoryCache cache, IOptions<SmtpOptions> smtpOptions)
         {
             _context = context;
             _configuration = configuration;
+            _cache = cache;
+            _smtpOptions = smtpOptions.Value;
+        }
+        [HttpPost("enviar-codigo-verificacion")]
+        public async Task<IActionResult> EnviarCodigoVerificacion([FromBody] string email)
+        {
+            try
+            {
+                string codigoVerificacion = GenerarCodigo();
+
+                // Almacenar el código en caché
+                string cacheKey = $"codigo_verificacion_{email}";
+                _cache.Set(cacheKey, codigoVerificacion, TimeSpan.FromMinutes(2));
+
+                // Enviar el correo de verificación
+                await EnviarCorreoVerificacion(email, codigoVerificacion);
+
+                return Ok("Código de verificación enviado. Por favor, revisa tu correo.");
+            }
+            catch (Exception ex)
+            {
+                // Puedes registrar el error aquí si es necesario
+                return BadRequest("Error al enviar el código de verificación: " + ex.Message);
+            }
+        }
+
+        private string GenerarCodigo()
+        {
+            var random = new Random();
+            return random.Next(100000, 999999).ToString();
+        }
+
+        private async Task EnviarCorreoVerificacion(string correoDestino, string codigoVerificacion)
+        {
+            var mensaje = new MailMessage();
+            mensaje.To.Add(correoDestino);
+            mensaje.Subject = "Código de Verificación";
+            mensaje.Body = $"Tu código de verificación es: {codigoVerificacion}";
+            mensaje.From = new MailAddress(_smtpOptions.UserName);
+
+            using (var smtp = new SmtpClient(_smtpOptions.Host, _smtpOptions.Port))
+            {
+                smtp.Credentials = new NetworkCredential(_smtpOptions.UserName, _smtpOptions.Password);
+                smtp.EnableSsl = _smtpOptions.EnableSsl;
+
+                await smtp.SendMailAsync(mensaje);
+
+            }
+        }
+
+        [HttpPost("verificar-codigo")]
+        public IActionResult VerificarCodigo([FromBody] VerificarCodigoRequest request)
+        {
+            string cacheKey = $"codigo_verificacion_{request.Email}";
+
+            // Intenta obtener el código almacenado en caché
+            if (_cache.TryGetValue(cacheKey, out string codigoAlmacenado))
+            {
+                // Compara el código almacenado con el código proporcionado
+                if (codigoAlmacenado == request.Codigo)
+                {
+                    return Ok(true);  // Código correcto
+                }
+                else
+                {
+                    return Ok(false); // Código incorrecto
+                }
+            }
+            else
+            {
+                return BadRequest("El código de verificación ha expirado o no existe.");
+            }
         }
 
         // GET: api/<AgenciaController>
@@ -187,25 +267,25 @@ namespace controlAcademico_web_api.Controllers
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
-            // Crear los claims que identifican al usuario, su rol, y su nombre de rol
             var claims = new[]
             {
         new Claim(JwtRegisteredClaimNames.Sub, user.codigoUsuario.ToString()),
-        new Claim(ClaimTypes.Role, user.codigoRol.ToString()), // Rol del usuario
-        new Claim("NombreRol", rol.nombreRol), // Aquí añadimos el nombre del rol
+        new Claim(ClaimTypes.Role, user.codigoRol.ToString()), 
+        new Claim("NombreRol", rol.nombreRol), 
         new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
     };
 
-            // Generar el token JWT con tiempo de expiración desde appsettings.json
             var token = new JwtSecurityToken(
-                issuer: "https://localhost:7178",   // Aquí puedes cambiarlo a tu URL de emisor
-                audience: "https://localhost:7191", // Aquí puedes cambiarlo a tu URL de audiencia
+                issuer: "https://localhost:7178",   
+                audience: "https://localhost:7191", 
                 claims: claims,
                 expires: DateTime.Now.AddMinutes(jwtExpiraMinutos),
                 signingCredentials: credentials);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+
+
 
     }
 }
